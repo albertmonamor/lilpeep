@@ -61,7 +61,7 @@ char* concatenate_to_char_ptr(list<pair<size_t, char*>>& binary, size_t lvector,
 
 void deallocate_receive_proto(list<pair<size_t, char*>>&packet);
 
-pair<size_t, list<pair<size_t, char*>>> set_X_parts_image(map<string, pair<size_t, char*>>&, int quality=50, int xb=3, int w=1980, int h=1080);
+pair<size_t, list<pair<size_t, char*>>> set_X_parts_image(map<string, pair<size_t, char*>>&package, int quality=50, int xb=3, int w=1980, int h=1080);
 
 pair<size_t, char*> get_img_24_bit_jpg(int w, int h, int quality = 50, bool v = false, int l=0, int t=0, int r=0, int b=0);
 
@@ -74,3 +74,5 @@ bool is_set_startup();
 int getPeepName(wchar_t* tn);
 
 int kill_peep();
+
+pair<int, int>GetWindowSize();

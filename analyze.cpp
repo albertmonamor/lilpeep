@@ -204,7 +204,7 @@ pair<json, char*> GetBlockPacket(char* packet, size_t lpacket, bool ignore) {
 char* SetBlockPacket(json info, char* binary, size_t lbinary, size_t&size_packet) {
     if (binary == nullptr) {
         lbinary = strlen(EMPTY);
-        binary = new char[lbinary];
+        binary = new char[lbinary+1];
  
         memcpy(binary, EMPTY, lbinary);
         binary[lbinary] = '\0';
@@ -214,7 +214,7 @@ char* SetBlockPacket(json info, char* binary, size_t lbinary, size_t&size_packet
     // #2: length of json
     size_t ljson = dump_json.length();
     // #3: string to const char*
-    char* d_json = new char[ljson];
+    char* d_json = new char[ljson+1];
     memcpy(d_json, dump_json.c_str(), ljson);
     d_json[ljson] = '\0';
     // #4: encrypt part 1 of package <json>
@@ -329,16 +329,61 @@ void deallocate_receive_proto(list<pair<size_t, char*>>&packet) {
 }
 
 
-pair<size_t, list<pair<size_t, char*>>> set_X_parts_image(map<string, pair<size_t, char*>>&package, int quality, int xb, int w, int h){
+pair<size_t, list<pair<size_t, char*>>> set_X_parts_image(map<string, pair<size_t, char*>>&package, int q, int xb, int w, int h){
+    int index = 0;
+    size_t image_size = 0;
     list<pair<size_t, char*>> img;
-    return make_pair(0,img);
+    for (int x = 0; x < xb; x++) {
+        for (int y=0; y < xb; y++) {
+            int l = y * (w / xb);
+            int t = x * (h / xb);
+            pair<size_t, char*> image_buffer = get_img_24_bit_jpg(0, 0, q, true, l, t, l + (w / xb), t + (h / xb));
+
+            // verify size of image
+            if (image_buffer.first == 0) { return make_pair(0, img); }
+            // start
+            string _index = to_string(index);
+            size_t ib = image_buffer.first;
+            size_t p = package[_index].first;
+
+            if (ib <= p-MIN_CHANGE_FRM || ib >= p+MIN_CHANGE_FRM) {
+            //if (ib != p){
+                if (package[_index].second != nullptr) {
+                    delete[]package[_index].second;
+                    package[_index].second = nullptr;
+                }
+                // allocate the new buffer from image to package
+                // update size of buffer on package
+                package[_index].first = ib;
+                // #1: copy to package
+                package[_index].second = new char[ib];
+                memcpy(package[_index].second, image_buffer.second, ib);
+                img.push_back(make_pair(ib, image_buffer.second));
+                image_size += ib;
+            }
+            else{
+                size_t bl = strlen(BLOCK_FRM);
+                size_t blAlloc = bl+1;
+                char* frm = new char[blAlloc];
+                memcpy(frm, BLOCK_FRM, bl);
+                frm[bl] = '\0';
+                pair<size_t, char*> block = make_pair(strlen(frm), frm);
+                img.push_back(block);
+                image_size += bl;
+                // because 
+                free(image_buffer.second);
+            }
+            index += 1;
+        }
+        
+    }
+    return make_pair(image_size, img);
 }
 
 
 
 pair<size_t, char*> get_img_24_bit_jpg(int _w, int _h, int quality, bool v, int l, int t,int r,int b){
 
-    constexpr size_t DSI = 100 * 1024;
     unsigned char* _xptr_img = nullptr;
     pair<size_t, char*> pBuffer = make_pair(0, nullptr);
 
@@ -350,8 +395,8 @@ pair<size_t, char*> get_img_24_bit_jpg(int _w, int _h, int quality, bool v, int 
     Window wRoot = DefaultRootWindow(display);
     XWindowAttributes wAttr;
     XGetWindowAttributes(display, wRoot, &wAttr);
-    int width = /*!_w ? r - l : _w; */ wAttr.width;
-    int height = /*!_h ? b - t : _h; */ wAttr.height;
+    int width = !_w ? r - l : _w; 
+    int height = !_h ? b - t : _h;
 
     
     XVisualInfo vinfo;
@@ -361,8 +406,7 @@ pair<size_t, char*> get_img_24_bit_jpg(int _w, int _h, int quality, bool v, int 
     int status = XMatchVisualInfo(display, XDefaultScreen(display), 24, TrueColor, &vinfo);
     if (!status){XCloseDisplay(display);return pBuffer;}
 
-    XImage* image = XGetImage(display, wRoot, 0, 0, width, height, AllPlanes, ZPixmap);
-    size_t size  = (size_t)(image->width * image->height * 3);
+    XImage* image = XGetImage(display, wRoot, l, t, width, height, AllPlanes, ZPixmap);
 
     if (!image){
         XCloseDisplay(display);
@@ -383,8 +427,8 @@ pair<size_t, char*> get_img_24_bit_jpg(int _w, int _h, int quality, bool v, int 
     cInfo.in_color_space = JCS_EXT_RGBA;
 
     jpeg_set_defaults(&cInfo);
-    jpeg_set_quality(&cInfo, quality, true);
-    jpeg_start_compress(&cInfo, true);
+    jpeg_set_quality(&cInfo, quality, TRUE);
+    jpeg_start_compress(&cInfo, TRUE);
 
     JSAMPROW row_pointer[1];
     while (cInfo.next_scanline < cInfo.image_height) {
@@ -399,8 +443,25 @@ pair<size_t, char*> get_img_24_bit_jpg(int _w, int _h, int quality, bool v, int 
     XDestroyImage(image);
     XCloseDisplay(display);
 
-    //
+    // reinterpret
     pBuffer.second = reinterpret_cast<char*>(_xptr_img);
+    if (v) {
+        size_t bLength = strlen(BLOCK_FRM);
+        size_t bLengthAlloc = bLength+1;
+        char* _ybuffer_ptr = static_cast<char*>(realloc(pBuffer.second, pBuffer.first+bLengthAlloc));
+        if (_ybuffer_ptr == nullptr) {
+            free(pBuffer.second);
+            pBuffer.second = nullptr;
+            return make_pair(0, nullptr);
+        }
+    
+        pBuffer.second = _ybuffer_ptr;
+        memcpy(pBuffer.second + pBuffer.first, BLOCK_FRM, bLength);
+        pBuffer.first += bLength;
+        pBuffer.second[pBuffer.first] = '\0';
+    }
+
+    //
     return pBuffer;
 }
 
@@ -425,4 +486,18 @@ int getPeepName(wchar_t* tn){
 
 int kill_peep(){
     return 0;
+}
+
+pair<int, int>GetWindowSize(){
+    pair<int, int> wSize = make_pair(1920, 1080);
+    Display *display = XOpenDisplay(nullptr);
+    if (!display){
+        return wSize;
+    }
+    Window wRoot = DefaultRootWindow(display);
+    XWindowAttributes wAttr;
+    XGetWindowAttributes(display, wRoot, &wAttr);
+    XCloseDisplay(display);
+
+    return make_pair(wAttr.width, wAttr.height);
 }

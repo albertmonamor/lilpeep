@@ -39,7 +39,7 @@ json PACKET_T_PROTOCOL = {
     {"key_aes_iv", ""},
     {"xor", ""},
     {"block_stream", false},
-    {"screen",  0},
+    {"screen",  1},
     {"shell",   1},
     {"explorer", 0},
     {"ping",    1},

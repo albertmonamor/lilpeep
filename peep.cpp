@@ -139,7 +139,35 @@ void peep::mode_shell_terminal(json info){
 }
 
 void peep::mode_screen(json info){
+	if (info["action"] == "OPEN"){
 
+		if (info["kind"] == "TCP"){
+			SETTING["scrn:connect"] = 1;
+
+			// init
+			thread thrd([&] {bMode_screen(setting_sock,info["port_stream"], SETTING);} );
+			this_thread::sleep_for(.3s);
+			// disconnect
+			thrd.detach();
+		}
+		else if (info["kind"] == "TCPv2"){
+			SETTING["scrn:connect"] = 1;
+			thread screenv2([&] {bMode_screen_v2(setting_sock, info["port_stream"], SETTING); });
+			this_thread::sleep_for(.3s);
+			screenv2.detach();
+		}
+	}
+	else if (info["action"] == "CLOSE") {
+		SETTING["scrn:connect"] = 0;
+	}	
+
+	// #~: responsing to server, the content is not relevant
+	size_t lpacket = 0;
+	json _info = json::parse("{}");
+	char* packet = SetBlockPacket(_info, nullptr, 0, lpacket);
+	this->send_packet_p(packet, lpacket);
+	// cleanup
+	delete[] packet;
 }
 
 void peep::mode_explorer(json info){

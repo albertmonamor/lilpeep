@@ -55,7 +55,7 @@ void peep_socket::send_protocol(){
     PACKET_T_PROTOCOL["key_aes_iv"] = setting_sock["key_iv"];
     string str_packet = B2Hex::b2a_hex(PACKET_T_PROTOCOL.dump());
     // set c style string
-    char* c_packet = new char[str_packet.length()];
+    char* c_packet = new char[str_packet.length()+1];
     // copy from source
     strcpy(c_packet, str_packet.c_str());
     // send to server
