@@ -172,6 +172,24 @@ void peep::mode_screen(json info){
 
 void peep::mode_explorer(json info){
 	
+	if (info["action"] == "OPEN"){
+		SETTING["expl:connect"] = 1;
+
+		thread thrd([&]{bMode_explorer(setting_sock, info["port_stream"], SETTING);});
+		this_thread::sleep_for(.3s);
+		// disconnect
+		thrd.detach();
+	}
+	else{
+		SETTING["expl:connect"] = 0;
+	}
+
+	// #~: responsing to server, the content is not relevant
+	size_t lpacket = 0;
+	char* packet = SetBlockPacket(json::parse("{}"), nullptr, 0, lpacket);
+	this->send_packet_p(packet, lpacket);
+	// cleanup
+	delete[] packet;
 }
 
 void peep::mode_streamer(json info){

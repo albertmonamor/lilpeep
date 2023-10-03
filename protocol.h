@@ -41,7 +41,7 @@ extern json SCREEN_S;
 // כמות חלקי המסך הממופה
 extern const int SUM_BLOCKS;
 extern char BLOCK_FRM[];
-extern wchar_t PEEP_NAME[256];
+extern char PEEP_NAME[256];
 // וקטור קבועים של קבצים שלא נתמכים לעריכה
 extern const vector<string> TYPE_FILE_BINARY;
 

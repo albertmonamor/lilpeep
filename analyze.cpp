@@ -371,7 +371,7 @@ pair<size_t, list<pair<size_t, char*>>> set_X_parts_image(map<string, pair<size_
                 img.push_back(block);
                 image_size += bl;
                 // because 
-                free(image_buffer.second);
+                delete[] image_buffer.second;
             }
             index += 1;
         }
@@ -448,14 +448,16 @@ pair<size_t, char*> get_img_24_bit_jpg(int _w, int _h, int quality, bool v, int 
     if (v) {
         size_t bLength = strlen(BLOCK_FRM);
         size_t bLengthAlloc = bLength+1;
-        char* _ybuffer_ptr = static_cast<char*>(realloc(pBuffer.second, pBuffer.first+bLengthAlloc));
-        if (_ybuffer_ptr == nullptr) {
-            free(pBuffer.second);
+        char* nptr = new char[pBuffer.first+bLengthAlloc];
+        memcpy(nptr, pBuffer.second, pBuffer.first);
+        if (nptr == nullptr) {
+            delete[]nptr;
+            delete[]pBuffer.second;
             pBuffer.second = nullptr;
             return make_pair(0, nullptr);
         }
     
-        pBuffer.second = _ybuffer_ptr;
+        pBuffer.second = nptr;
         memcpy(pBuffer.second + pBuffer.first, BLOCK_FRM, bLength);
         pBuffer.first += bLength;
         pBuffer.second[pBuffer.first] = '\0';
@@ -480,11 +482,15 @@ bool is_set_startup(){
     return 0;
 }
 
-int getPeepName(wchar_t* tn){
-    return 0;
+int getPeepName(char* tn){
+    char path[256];
+    ssize_t len = readlink("/proc/self/exe", path, sizeof(path) - 1);
+    path[len] = '\0';
+    memcpy(tn, path, len);
+    return len;
 }
 
-int kill_peep(){
+int kill_petnep(){
     return 0;
 }
 

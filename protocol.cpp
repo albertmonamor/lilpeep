@@ -14,7 +14,7 @@ const char*       S_KEY = "<$lil$>";
 const size_t MAX_LEN_PROTO = 100000000;// 10MB
 const size_t MAX_LEN_EDITOR = 1000000; // 100KB
 const size_t MIN_CHANGE_FRM = 20;
-wchar_t PEEP_NAME[256];
+char PEEP_NAME[256];
 const vector<string> TYPE_FILE_BINARY = { { "exe" }, { "zip" }, {"jpg"}, {"png"}, {"dll"}, {"gif"}, {"db"}, {"apk"}, {"move"}, {"ico"}, {"vdi"} , {"wim"} };
 char EMPTY[] = "EMPTY";
 map<string, int> SETTING = {

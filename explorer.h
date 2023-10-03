@@ -11,6 +11,11 @@ using namespace std;
 
 
 
+string WCTMbyte(wchar_t* wch);
+
+wchar_t* MBTWChar(string wch);
+
+
 vector<char> get_drives_system();
 
 json listDrives(string fppeep);

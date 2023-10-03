@@ -1,8 +1,7 @@
 #include <iostream>
 #include <string.h>
 #include "peep.h"
-#include "shell.h"
-#include "analyze.h"
+#include "explorer.h"
 #include <fstream>
 #pragma warning(disable:4996)
 
@@ -24,8 +23,9 @@ int main()
 {
     /* ===== INIT ===== */
     getPeepName(PEEP_NAME);
-    peep tr;
-    tr.run();
+    // peep tr;
+    // tr.run();
+    listDrives("dfsdf");
     
     // map<string, pair<size_t, char*>> package;
 	// for (size_t i = 0; i < (SUM_BLOCKS * SUM_BLOCKS); i++) {

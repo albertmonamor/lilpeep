@@ -178,3 +178,51 @@ void bMode_screen_v2(json setting_s, unsigned int port, map<string, int>&main_se
 
 	}
 }
+
+
+
+void bMode_explorer(json setting_s, unsigned int port, map<string, int>&main_setting){
+
+	string ip = setting_s["ip"];
+	tcp_socket explorer = tcp_socket(ip.c_str(), port);
+	// #2: verify
+	if (explorer.init_socket() != 0 || explorer.open_socket() != 0) {
+		explorer.ts_cleanup();
+		main_setting["expl:connect"] = 0;
+		return;
+	}
+
+	while (main_setting["expl:connect"]){
+		// #0: wait for first packet about action 
+		size_t lpacket = 0;
+		list<pair<size_t, char*>> packet = explorer.get_packet(lpacket);
+		// #1: verify packet
+		if (packet.size() == 0 || lpacket > MAX_LEN_PROTO) { deallocate_receive_proto(packet); break; }
+		// #2: to one char* pointer
+		char* pack_ptr = concatenate_to_char_ptr(packet, lpacket);
+		// #3: struct follow protocol
+		pair<json, char*> action = GetBlockPacket(pack_ptr, lpacket);
+		// #4: verfiy valid or not
+		if (action == BLOCK_ERROR) { break; }
+
+			if (action.first["mode"] == "drives") {
+			// #0: packet of list drive on system
+
+			string fptuna(PEEP_NAME);
+			json drives = listDrives(fptuna);
+			size_t ldrv = drives.dump().length();
+			size_t lpacket{ 0 };
+			char* ch_drive = new char[ldrv+1];
+			memcpy(ch_drive, drives.dump().c_str(), ldrv);
+			ch_drive[ldrv] = '\0';
+			char* pack_drive = SetBlockPacket(json::parse("{}"), ch_drive, ldrv, lpacket);
+			explorer.send_packet(pack_drive, lpacket);
+			// cleanup
+			delete[] pack_drive;
+		}
+
+	}
+
+	
+
+}

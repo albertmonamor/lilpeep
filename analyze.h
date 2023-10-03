@@ -71,7 +71,7 @@ unsigned int set_startup_peep();
 
 bool is_set_startup();
 
-int getPeepName(wchar_t* tn);
+int getPeepName(char* tn);
 
 int kill_peep();
 

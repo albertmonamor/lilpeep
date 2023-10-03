@@ -38,56 +38,44 @@ char* run_pshell(const char* args_shell, size_t &lout, bool proxy) {
     
  
     const char* err = "bad process output";
+    size_t bRead{0};
     size_t lerr = strlen(err);
     char* error  = new char[lerr+1];
     strcpy(error, err);
     
     if (proxy){return error;}
 
-    char* output = new char[b4K];
-    char* buffer = new char[b4K];
+    vector<char> output;
+    char buffer[b4K];
 
     FILE* pipe = popen(args_shell, "r");
     if (pipe == NULL){
-        delete[]buffer;
-        delete[]output;
         lout = lerr;
         return error;
     }
 
     // read
     while (1){
-        size_t bRead = fread(buffer, 1, b4K, pipe);
-        if (!bRead){break;} 
-        if (b4K < lout+bRead){
-            // realloc
-            char* _xptr = new char[lout+bRead];
-            delete[]output;
-            output = _xptr;
-            if (_xptr == nullptr){
-                break;
-
-            }
-            output = _xptr;
-        }
-        memcpy(output+lout, buffer, bRead);
-        lout+=bRead;
+        bRead = fread(buffer, 1, b4K, pipe);
+        if (!bRead){break;}
+        output.insert(output.end(), buffer, buffer+bRead);
     }
-
+    // cleanup pipe
     pclose(pipe);
-
-    if (!lout){
-        delete[]buffer;
-        delete[]output;
+    // verify
+    if (!output.size()){
         lout = lerr;
         return error;
     }
     // cleanup
-    delete[] buffer;
     delete[] error;
-    output[lout] = '\0';
+
     // SUCCESS
-    return output;
+    lout = output.size();
+    char* outb = new char[lout+1];
+    memcpy(outb, output.data(), lout);
+    outb[lout] = '\0';
+    return outb;
 }
 
 
