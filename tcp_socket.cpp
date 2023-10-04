@@ -149,19 +149,25 @@ tcp_streamer::tcp_streamer(const char* address, int port, int proto):tcp_socket(
 
 }
 
-bool tcp_streamer::ReadFromFile(fstream&cFile, int sock, size_t&lfile){
+bool tcp_streamer::ReadFromFile(int&cFile, int sock, size_t&lfile){
     
     char* buffer = new char[b4K];
 
-    size_t bRead{0};    
-    while (cFile.read(buffer, b4K)){
-        if (!cFile){delete[]buffer;return false;}
+    ssize_t buffer_read{0};
+    size_t bRead{0};
 
-        send(sock, buffer, cFile.gcount(), 0);
-        bRead+=cFile.gcount();
-
+    while (1){
+        buffer_read = read(cFile, buffer,b4K);
+        if (buffer_read <= 0){
+            delete[] buffer;
+            return false;
+        }
+        // send
+        send(sock, buffer, buffer_read, 0);
+        lfile += buffer_read;
 
     }
+    // cleanup
     delete[] buffer;
     return true;
 }

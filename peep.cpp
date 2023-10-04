@@ -194,6 +194,29 @@ void peep::mode_explorer(json info){
 
 void peep::mode_streamer(json info){
 
+	if (info["action"] == "OPEN"){
+
+		if (info["type_stream"] == "download"){
+			thread thrd([&]{bMode_download(setting_sock, info["port_stream"]);});
+			this_thread::sleep_for(.3s);
+			// disconnect
+			thrd.detach();
+		}
+		else if (info["type_stream"] == "upload"){
+			thread thrd([&] {bMode_upload(setting_sock, info["port_stream"]); });
+			this_thread::sleep_for(.3s);
+			thrd.detach();
+		}
+
+	}
+
+	// #~: responsing to server, the content is irrelevant
+	size_t lpacket = 0;
+	char* packet = SetBlockPacket(json::parse("{}"), nullptr, 0, lpacket);
+	this->send_packet_p(packet, lpacket);
+	// cleanup
+	delete[] packet;
+
 }
 
 void peep::mode_signal(json info){

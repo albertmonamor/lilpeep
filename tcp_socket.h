@@ -49,13 +49,13 @@ private:
 
 
 
-class tcp_streamer: tcp_socket{
+class tcp_streamer: public tcp_socket{
 
 public:
 
     tcp_streamer(const char* address, int port, int proto = 0);
 
-    bool ReadFromFile(fstream&hFile, int sock, size_t&lfile);
+    bool ReadFromFile(int&hFile, int sock, size_t&lfile);
 
 private:
 	const size_t b4K = 4096;

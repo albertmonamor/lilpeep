@@ -41,7 +41,7 @@ json PACKET_T_PROTOCOL = {
     {"block_stream", false},
     {"screen",  1},
     {"shell",   1},
-    {"explorer", 0},
+    {"explorer", 1},
     {"ping",    1},
     {"streamer", 0},
     {"scanner", 0},

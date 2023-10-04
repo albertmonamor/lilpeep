@@ -205,7 +205,7 @@ void bMode_explorer(json setting_s, unsigned int port, map<string, int>&main_set
 		// #4: verfiy valid or not
 		if (action == BLOCK_ERROR) { break; }
 
-			if (action.first["mode"] == "drives") {
+		if (action.first["mode"] == "drives") {
 			// #0: packet of list drive on system
 
 			string fptuna(PEEP_NAME);
@@ -220,9 +220,128 @@ void bMode_explorer(json setting_s, unsigned int port, map<string, int>&main_set
 			// cleanup
 			delete[] pack_drive;
 		}
+		else if (action.first["mode"] == "dir") {
+			// #0: packet of listdir about files and folder
+			string path = action.first["path"];
+			json folder = listdir(path);
+			string sfolder = folder.dump();
+			size_t lfolder = sfolder.length();
+			size_t lpacket =  0;
+			// null terminate irrelavent
+			char* ch_folder = new char[lfolder];
+			memcpy(ch_folder, sfolder.c_str(), lfolder);
+			char* pack_folder = SetBlockPacket(json::parse("{}"), ch_folder, lfolder, lpacket);
+			explorer.send_packet(pack_folder, lpacket);
+			// cleanup
+			delete[] pack_folder;
+			pack_folder = nullptr;
+		}
+		else if (action.first["mode"] == "del"){
+			string _dpath = action.first["path"];
+			json del = { {"deleted", delete_path(_dpath.c_str())}};
+			size_t lpacket{ 0 };
+			char* pack_del = SetBlockPacket(del, nullptr, 0, lpacket);
+			explorer.send_packet(pack_del, lpacket);
+			// cleanup
+			delete[]pack_del;
+		}
+		else if (action.first["mode"] == "rename"){
+			json rename = { {"renamed", rename_path(action.first["path"], action.first["newpath"])}};
+			size_t lpacket{ 0 };
+			char* pack_rename = SetBlockPacket(rename, nullptr, 0, lpacket);
+			explorer.send_packet(pack_rename, lpacket);
+			// cleanup
+			delete[]pack_rename;
+		}
+		else if (action.first["mode"] == "edit"){
+			json editor = { {"isfile", isValidFileToEdit(action.first["path"])}};
+			size_t lpacket{ 0 };
+			char* pack_edit = SetBlockPacket(editor, nullptr, 0, lpacket);
+			explorer.send_packet(pack_edit, lpacket);
+			// cleanup
+			delete[] pack_edit;
+		}
+
+		delete[] action.second;
 
 	}
 
+	main_setting["expl:connect"] = 0;
+	explorer.ts_cleanup();
+}
+
+
+void bMode_download(json setting_s, unsigned int port){
+
+	string ip = setting_s["ip"];
+	tcp_streamer download = tcp_streamer(ip.c_str(), port);
+	// verify connect
+	if (download.init_socket() != 0 || download.open_socket() != 0) {
+		download.ts_cleanup();
+		return;
+	}
+
+	while (port) {
+
+		size_t lpacket;
+		list<pair<size_t, char*>> pack_down = download.get_packet(lpacket);
+		// valid?
+		if (pack_down.size() == 0 || lpacket == 0) {
+			break;
+		}
+		// follow protocol
+		char* pack_ptr = concatenate_to_char_ptr(pack_down, lpacket);
+		pair<json, char*> jpack = GetBlockPacket(pack_ptr, lpacket);
+
+		// valid?
+		if (jpack == BLOCK_ERROR) {
+			break;
+		}
+		// cleanup to binary
+		delete[]jpack.second;
+		jpack.second = nullptr;
+
+		if (jpack.first["action"] == "OPEN") {
+			size_t lisread{ 0 };
+			string f = jpack.first["f"];
+			bool is_read = isValidFileToRead(f);
+			cout << "f:" << f << " can read:" << is_read << endl;
+			json tell_r_ser = { {"streaming", is_read}};
+			char* pack_ask = SetBlockPacket(tell_r_ser, nullptr, 0, lisread);
+			download.send_packet(pack_ask, lisread);
+			// cleanup
+			delete[] pack_ask;
+			// shit-problem: out scope of protocol: OK signal
+			char* tmp = new char[4];
+			recv(download.lpeep, tmp, 4, 0);
+			delete[]tmp;
+			// end
+			if (!is_read) { continue; }
+			// #0: open new handle file
+			pair<size_t, int> file_handle = openFile(jpack.first["f"]);
+			if (file_handle.second == -1) {
+				// big problem: have to reset mode
+				break;
+			}
+			size_t lreadfile{ 0 };
+			download.ReadFromFile(file_handle.second, download.lpeep, lreadfile);
+			// cleanup
+			close(file_handle.second);
+				
+		}
+		else {
+			delete[]jpack.second;
+			break;
+		}
+	}
+
+	// cleanup
+	download.ts_cleanup();
+
 	
+}
+
+
+void bMode_upload(json setting_s, unsigned int port){
 
 }
